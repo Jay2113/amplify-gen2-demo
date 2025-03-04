@@ -5,14 +5,16 @@ const schema = a
   .schema({
     User: a
       .model({
+        owner: a.string().required(),
         email: a.string(),
         articles: a.hasMany("Article", "authorId"),
       })
+      .identifier(["owner"])
       .authorization((allow) => [allow.owner("userPools")]),
     Article: a
       .model({
-        title: a.string().required(),
-        content: a.string().required(),
+        title: a.string(),
+        content: a.string(),
         authorId: a.string().required(),
         author: a.belongsTo("User", "authorId"),
       })

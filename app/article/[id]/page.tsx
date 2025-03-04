@@ -5,20 +5,36 @@ import { useParams, useRouter } from "next/navigation";
 import { Schema } from "../../../amplify/data/resource";
 import { signOut } from "aws-amplify/auth";
 import { client, useAIGeneration } from "@/app/client";
+import { SelectionSet } from "aws-amplify/api";
+
+const selectionSet = [
+  "id",
+  "title",
+  "content",
+  "createdAt",
+  "authorId",
+  "author.*",
+] as const;
+
+type ArticleWithAuthor = SelectionSet<
+  Schema["Article"]["type"],
+  typeof selectionSet
+>;
 
 export default function ArticlePage() {
   const { id } = useParams();
   const router = useRouter();
-  const [article, setArticle] = useState<Schema["Article"]["type"] | null>(
-    null
-  );
+  const [article, setArticle] = useState<ArticleWithAuthor | null>(null);
   const [{ data: summary, isLoading }, summarize] =
     useAIGeneration("summarize");
 
   useEffect(() => {
     const getArticle = async () => {
       try {
-        const { data } = await client.models.Article.get({ id: id as string });
+        const { data } = await client.models.Article.get(
+          { id: id as string },
+          { selectionSet: [...selectionSet] }
+        );
         setArticle(data);
       } catch (error) {
         console.error("Error fetching article:", error);
@@ -49,7 +65,9 @@ export default function ArticlePage() {
               Amplify News Hub
             </h1>
             <button
-              onClick={() => signOut()}
+              onClick={() => {
+                signOut();
+              }}
               className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-full hover:bg-gray-200 transition-all cursor-pointer"
             >
               Sign Out
@@ -71,7 +89,7 @@ export default function ArticlePage() {
             {article.title}
           </h1>
           <div className="flex items-center gap-2 text-gray-500 text-sm">
-            <span>By {article.authorId.split("::")[1]}</span>
+            <span>By {article.author.email}</span>
             <span>•</span>
             <span>
               {new Date(article.createdAt).toLocaleDateString("en-US", {
@@ -121,8 +139,8 @@ export default function ArticlePage() {
         {/* Article Content */}
         <article className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
           <div className="prose prose-lg max-w-none">
-            {article.content
-              .split("\n")
+            {article?.content
+              ?.split("\n")
               .slice(1)
               .map((paragraph, index) => (
                 <p key={index} className="mb-4 text-gray-700 leading-relaxed">
