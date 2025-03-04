@@ -5,11 +5,26 @@ import { getCurrentUser, signOut } from "aws-amplify/auth";
 import { useEffect, useState } from "react";
 import { Authenticator } from "@aws-amplify/ui-react";
 import { client, useAIGeneration } from "./client";
+import { SelectionSet } from "aws-amplify/api";
 
-type Article = Schema["Article"];
+/* eslint-disable-next-line */
+const selectionSet = [
+  "id",
+  "title",
+  "content",
+  "createdAt",
+  "author.*",
+] as const;
+
+type CreateArticleInput = Schema["Article"]["createType"];
+
+type ArticleWithAuthor = SelectionSet<
+  Schema["Article"]["type"],
+  typeof selectionSet
+>;
 
 export default function FrontPage() {
-  const [articles, setArticles] = useState<Article["type"][]>([]);
+  const [articles, setArticles] = useState<ArticleWithAuthor[]>([]);
 
   // data is React state and will be populated when the generation is returned
   const [{ data, isLoading }, summarize] = useAIGeneration("summarize");
@@ -17,7 +32,7 @@ export default function FrontPage() {
   const createArticles = async () => {
     const user = await getCurrentUser();
 
-    const articles: Article["createType"][] = [
+    const articles: CreateArticleInput[] = [
       {
         title: "Local Cat Elected as Town's 'Chief Nap Officer'",
         authorId: `${user.userId}::${user.username}`,
@@ -54,12 +69,32 @@ The IRS has confirmed receipt of the starter's tax return, noting it claimed sev
       },
     ];
 
+    const newArticles = [];
+
     for (const article of articles) {
-      await client.models.Article.create(article, { authMode: "userPool" });
+      const { data } = await client.models.Article.create(article, {
+        authMode: "userPool",
+        selectionSet: [...selectionSet],
+      });
+
+      newArticles.push(data);
     }
+
+    setArticles(newArticles as ArticleWithAuthor[]);
   };
 
-  const generateSummary = async (article: Article["type"]) => {
+  const deleteArticles = async () => {
+    for (const article of articles) {
+      await client.models.Article.delete(
+        { id: article.id },
+        { authMode: "userPool" }
+      );
+    }
+
+    setArticles([]);
+  };
+
+  const generateSummary = async (article: ArticleWithAuthor) => {
     await summarize({
       input: article.content,
     });
@@ -69,6 +104,7 @@ The IRS has confirmed receipt of the starter's tax return, noting it claimed sev
     const getArticles = async () => {
       const { data } = await client.models.Article.list({
         authMode: "userPool",
+        selectionSet: [...selectionSet],
       });
 
       setArticles(data);
@@ -92,13 +128,19 @@ The IRS has confirmed receipt of the starter's tax return, noting it claimed sev
               <div className="flex items-center gap-4">
                 <button
                   onClick={createArticles}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-full hover:opacity-90 transition-all shadow-sm hover:shadow-md"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-full hover:opacity-90 transition-all shadow-sm hover:shadow-md cursor-pointer"
                 >
                   Create Articles
                 </button>
                 <button
+                  onClick={deleteArticles}
+                  className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-2.5 rounded-full hover:opacity-90 transition-all shadow-sm hover:shadow-md cursor-pointer"
+                >
+                  Delete Articles
+                </button>
+                <button
                   onClick={() => signOut()}
-                  className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-full hover:bg-gray-200 transition-all"
+                  className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-full hover:bg-gray-200 transition-all cursor-pointer"
                 >
                   Sign Out
                 </button>
@@ -106,6 +148,40 @@ The IRS has confirmed receipt of the starter's tax return, noting it claimed sev
             </div>
           </div>
         </header>
+
+        {/* Summary Section */}
+        {(isLoading || data) && (
+          <div className="mt-12 bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6 text-blue-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Article Summary
+              </h2>
+            </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
+              </div>
+            ) : (
+              <p className="text-gray-700 leading-relaxed">{data}</p>
+            )}
+          </div>
+        )}
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
@@ -131,7 +207,7 @@ The IRS has confirmed receipt of the starter's tax return, noting it claimed sev
                   <div className="flex items-center justify-between">
                     <button
                       onClick={() => generateSummary(article)}
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 cursor-pointer"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -174,40 +250,6 @@ The IRS has confirmed receipt of the starter's tax return, noting it claimed sev
               </article>
             ))}
           </div>
-
-          {/* Summary Section */}
-          {(isLoading || data) && (
-            <div className="mt-12 bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-blue-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Article Summary
-                </h2>
-              </div>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
-                </div>
-              ) : (
-                <p className="text-gray-700 leading-relaxed">{data}</p>
-              )}
-            </div>
-          )}
         </main>
       </div>
     </Authenticator>

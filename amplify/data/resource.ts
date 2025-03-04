@@ -13,7 +13,7 @@ const schema = a
       .model({
         title: a.string().required(),
         content: a.string().required(),
-        authorId: a.id().required(),
+        authorId: a.string().required(),
         author: a.belongsTo("User", "authorId"),
       })
       .authorization((allow) => [

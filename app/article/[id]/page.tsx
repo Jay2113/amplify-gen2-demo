@@ -50,7 +50,7 @@ export default function ArticlePage() {
             </h1>
             <button
               onClick={() => signOut()}
-              className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-full hover:bg-gray-200 transition-all"
+              className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-full hover:bg-gray-200 transition-all cursor-pointer"
             >
               Sign Out
             </button>
@@ -83,46 +83,6 @@ export default function ArticlePage() {
             </span>
           </div>
         </div>
-
-        {/* Article Content */}
-        <article className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
-          <div className="prose prose-lg max-w-none">
-            {article.content
-              .split("\n")
-              .slice(1)
-              .map((paragraph, index) => (
-                <p key={index} className="mb-4 text-gray-700 leading-relaxed">
-                  {paragraph}
-                </p>
-              ))}
-          </div>
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={() =>
-                summarize({
-                  input: article.content,
-                })
-              }
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-              Generate Summary
-            </button>
-          </div>
-        </article>
 
         {/* Summary Section */}
         {(isLoading || summary) && (
@@ -157,6 +117,46 @@ export default function ArticlePage() {
             )}
           </div>
         )}
+
+        {/* Article Content */}
+        <article className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
+          <div className="prose prose-lg max-w-none">
+            {article.content
+              .split("\n")
+              .slice(1)
+              .map((paragraph, index) => (
+                <p key={index} className="mb-4 text-gray-700 leading-relaxed">
+                  {paragraph}
+                </p>
+              ))}
+          </div>
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={() =>
+                summarize({
+                  input: article.content,
+                })
+              }
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+              Generate Summary
+            </button>
+          </div>
+        </article>
       </main>
     </div>
   );
