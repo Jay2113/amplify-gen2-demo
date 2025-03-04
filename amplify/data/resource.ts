@@ -6,12 +6,9 @@ const schema = a
     User: a
       .model({
         email: a.string(),
-        profileOwner: a.string(),
         articles: a.hasMany("Article", "authorId"),
       })
-      .authorization((allow) => [
-        allow.ownerDefinedIn("profileOwner", "userPools"),
-      ]),
+      .authorization((allow) => [allow.owner("userPools")]),
     Article: a
       .model({
         title: a.string().required(),
@@ -20,7 +17,7 @@ const schema = a
         author: a.belongsTo("User", "authorId"),
       })
       .authorization((allow) => [
-        allow.ownerDefinedIn("authorId", "userPools"),
+        allow.owner("userPools"),
         allow.guest().to(["read"]),
         allow.authenticated().to(["read"]),
       ]),
