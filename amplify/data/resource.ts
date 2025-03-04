@@ -46,7 +46,7 @@ const schema = a
 export type Schema = ClientSchema<typeof schema>;
 
 export const data = defineData({
-  name: "YahooDemoApp",
+  name: "AmplifyGen2DemoApp",
   schema,
   authorizationModes: {
     defaultAuthorizationMode: "iam",
